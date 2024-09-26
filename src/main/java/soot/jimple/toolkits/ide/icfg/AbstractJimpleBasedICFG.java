@@ -108,6 +108,9 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
   @Override
   public SootMethod getMethodOf(Unit u) {
     Body b = getBodyOf(u);
+    if (b == null){
+      System.out.println(u);
+    }
     return b == null ? null : b.getMethod();
   }
 
@@ -115,6 +118,7 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
   public List<Unit> getSuccsOf(Unit u) {
     Body body = getBodyOf(u);
     if (body == null) {
+      System.out.println(u);
       return Collections.emptyList();
     }
     DirectedGraph<Unit> unitGraph = getOrCreateUnitGraph(body);
@@ -150,6 +154,9 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
   @Override
   public boolean isExitStmt(Unit u) {
     Body body = getBodyOf(u);
+    if (body == null){
+      System.out.println(u);
+    }
     DirectedGraph<Unit> unitGraph = getOrCreateUnitGraph(body);
     return unitGraph.getTails().contains(u);
   }
@@ -157,6 +164,9 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
   @Override
   public boolean isStartPoint(Unit u) {
     Body body = getBodyOf(u);
+    if (body == null){
+      System.out.println(u);
+    }
     DirectedGraph<Unit> unitGraph = getOrCreateUnitGraph(body);
     return unitGraph.getHeads().contains(u);
   }
@@ -168,6 +178,9 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
       return false;
     }
     Body body = getBodyOf(u);
+    if (body == null){
+      System.out.println(u);
+    }
     return body.getUnits().getSuccOf(u) == succ;
   }
 
@@ -265,6 +278,7 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
     assert u != null;
     Body body = getBodyOf(u);
     if (body == null) {
+      System.out.println(u);
       return Collections.emptyList();
     }
     DirectedGraph<Unit> unitGraph = getOrCreateUnitGraph(body);
