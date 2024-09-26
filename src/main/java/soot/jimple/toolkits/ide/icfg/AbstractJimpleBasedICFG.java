@@ -109,6 +109,8 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
   public SootMethod getMethodOf(Unit u) {
     Body b = getBodyOf(u);
     if (b == null){
+      System.out.println("getMethodOf");
+      unitToOwner.entrySet().stream().filter(unitBodyEntry -> unitBodyEntry.getValue()==null).forEach(unitBodyEntry -> System.out.println(unitBodyEntry.getKey()));
       System.out.println(u);
     }
     return b == null ? null : b.getMethod();
@@ -118,6 +120,8 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
   public List<Unit> getSuccsOf(Unit u) {
     Body body = getBodyOf(u);
     if (body == null) {
+      System.out.println("getSuccOf");
+      unitToOwner.entrySet().stream().filter(unitBodyEntry -> unitBodyEntry.getValue()==null).forEach(unitBodyEntry -> System.out.println(unitBodyEntry.getKey()));
       System.out.println(u);
       return Collections.emptyList();
     }
@@ -155,6 +159,8 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
   public boolean isExitStmt(Unit u) {
     Body body = getBodyOf(u);
     if (body == null){
+      System.out.println("isExitStmt");
+      unitToOwner.entrySet().stream().filter(unitBodyEntry -> unitBodyEntry.getValue()==null).forEach(unitBodyEntry -> System.out.println(unitBodyEntry.getKey()));
       System.out.println(u);
     }
     DirectedGraph<Unit> unitGraph = getOrCreateUnitGraph(body);
@@ -165,6 +171,8 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
   public boolean isStartPoint(Unit u) {
     Body body = getBodyOf(u);
     if (body == null){
+      System.out.println("isStartPoint");
+      unitToOwner.entrySet().stream().filter(unitBodyEntry -> unitBodyEntry.getValue()==null).forEach(unitBodyEntry -> System.out.println(unitBodyEntry.getKey()));
       System.out.println(u);
     }
     DirectedGraph<Unit> unitGraph = getOrCreateUnitGraph(body);
@@ -179,6 +187,8 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
     }
     Body body = getBodyOf(u);
     if (body == null){
+      System.out.println("isFallThroughSuccessor");
+      unitToOwner.entrySet().stream().filter(unitBodyEntry -> unitBodyEntry.getValue()==null).forEach(unitBodyEntry -> System.out.println(unitBodyEntry.getKey()));
       System.out.println(u);
     }
     return body.getUnits().getSuccOf(u) == succ;
@@ -278,6 +288,8 @@ public abstract class AbstractJimpleBasedICFG implements BiDiInterproceduralCFG<
     assert u != null;
     Body body = getBodyOf(u);
     if (body == null) {
+      System.out.println("getPredOf");
+      unitToOwner.entrySet().stream().filter(unitBodyEntry -> unitBodyEntry.getValue()==null).forEach(unitBodyEntry -> System.out.println(unitBodyEntry.getKey()));
       System.out.println(u);
       return Collections.emptyList();
     }
