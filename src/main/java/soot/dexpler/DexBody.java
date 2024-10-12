@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
 
 import soot.Body;
 import soot.DoubleType;
+import soot.FloatType;
 import soot.Local;
 import soot.LongType;
 import soot.Modifier;
@@ -78,6 +79,7 @@ import soot.SootMethod;
 import soot.Trap;
 import soot.Type;
 import soot.Unit;
+import soot.UnitPatchingChain;
 import soot.UnknownType;
 import soot.Value;
 import soot.ValueBox;
@@ -88,21 +90,33 @@ import soot.dexpler.instructions.MoveExceptionInstruction;
 import soot.dexpler.instructions.OdexInstruction;
 import soot.dexpler.instructions.PseudoInstruction;
 import soot.dexpler.instructions.RetypeableInstruction;
+import soot.dexpler.tags.DexplerTag;
+import soot.dexpler.tags.DoubleOpTag;
+import soot.dexpler.tags.FloatOpTag;
 import soot.dexpler.typing.DalvikTyper;
+import soot.jimple.AddExpr;
 import soot.jimple.AssignStmt;
+import soot.jimple.BinopExpr;
 import soot.jimple.CastExpr;
 import soot.jimple.CaughtExceptionRef;
 import soot.jimple.ConditionExpr;
 import soot.jimple.Constant;
 import soot.jimple.DefinitionStmt;
+import soot.jimple.DivExpr;
+import soot.jimple.DoubleConstant;
 import soot.jimple.EqExpr;
+import soot.jimple.FloatConstant;
 import soot.jimple.IfStmt;
 import soot.jimple.IntConstant;
 import soot.jimple.Jimple;
 import soot.jimple.JimpleBody;
+import soot.jimple.LongConstant;
+import soot.jimple.MulExpr;
 import soot.jimple.NeExpr;
 import soot.jimple.NullConstant;
 import soot.jimple.NumericConstant;
+import soot.jimple.RemExpr;
+import soot.jimple.SubExpr;
 import soot.jimple.internal.JIdentityStmt;
 import soot.jimple.toolkits.base.Aggregator;
 import soot.jimple.toolkits.scalar.ConditionalBranchFolder;
@@ -121,9 +135,11 @@ import soot.options.JBOptions;
 import soot.options.Options;
 import soot.tagkit.LineNumberTag;
 import soot.tagkit.SourceLineNumberTag;
+import soot.tagkit.Tag;
 import soot.toolkits.exceptions.TrapTightener;
 import soot.toolkits.scalar.LocalPacker;
 import soot.toolkits.scalar.LocalSplitter;
+import soot.toolkits.scalar.SharedInitializationLocalSplitter;
 import soot.toolkits.scalar.UnusedLocalEliminator;
 
 /**
@@ -477,7 +493,6 @@ public class DexBody {
    *          the SootMethod that contains this body
    */
   public Body jimplify(Body b, SootMethod m) {
-
     final Jimple jimple = Jimple.v();
     final UnknownType unknownType = UnknownType.v();
     final NullConstant nullConstant = NullConstant.v();
@@ -685,6 +700,9 @@ public class DexBody {
 
     // Make sure that we don't have any overlapping uses due to returns
     DexReturnInliner.v().transform(jBody);
+    convertFloatsAndDoubles(b, jimple);
+
+    new SharedInitializationLocalSplitter(DalvikThrowAnalysis.v()).transform(jBody);
 
     // split first to find undefined uses
     getLocalSplitter().transform(jBody);
@@ -771,6 +789,8 @@ public class DexBody {
       UnconditionalBranchFolder.v().transform(jBody);
     }
     DexFillArrayDataTransformer.v().transform(jBody);
+    //SharedInitializationLocalSplitter destroys the inserted casts, so we have to reintroduce them
+    convertFloatsAndDoubles(b, jimple);
 
     TypeAssigner.v().transform(jBody);
 
@@ -932,6 +952,7 @@ public class DexBody {
     DexReturnPacker.v().transform(jBody);
 
     for (Unit u : jBody.getUnits()) {
+
       if (u instanceof AssignStmt) {
         AssignStmt ass = (AssignStmt) u;
         if (ass.getRightOp() instanceof CastExpr) {
@@ -946,7 +967,8 @@ public class DexBody {
         // If the body references a phantom class in a
         // CaughtExceptionRef,
         // we must manually fix the hierarchy
-        if (def.getLeftOp() instanceof Local && def.getRightOp() instanceof CaughtExceptionRef) {
+        Value rop = def.getRightOp();
+        if (def.getLeftOp() instanceof Local && rop instanceof CaughtExceptionRef) {
           Type t = def.getLeftOp().getType();
           if (t instanceof RefType) {
             RefType rt = (RefType) t;
@@ -957,6 +979,7 @@ public class DexBody {
           }
         }
       }
+      removeDexplerTags(u);
     }
 
     // Replace local type null_type by java.lang.Object.
@@ -978,9 +1001,126 @@ public class DexBody {
     // Must be last to ensure local ordering does not change
     PackManager.v().getTransform("jb.lns").apply(jBody);
 
+    // Check that we don't have anything weird
+    checkUnrealizableCasts();
+
     // t_whole_jimplification.end();
 
     return jBody;
+  }
+
+  public void convertFloatsAndDoubles(Body b, final Jimple jimple) {
+    UnitPatchingChain units = jBody.getUnits();
+    Unit u = units.getFirst();
+    Local convResultFloat = null;
+    Local convResultDouble = null;
+    Local[] convFloat = new Local[2], convDouble = new Local[2];
+    while (u != null) {
+      if (u instanceof AssignStmt) {
+        AssignStmt def = (AssignStmt) u;
+        Value rop = def.getRightOp();
+        if (rop instanceof BinopExpr) {
+          boolean isDouble = u.hasTag(DoubleOpTag.NAME);
+          boolean isFloat = u.hasTag(FloatOpTag.NAME);
+          if (rop instanceof AddExpr || rop instanceof SubExpr || rop instanceof MulExpr || rop instanceof DivExpr
+              || rop instanceof RemExpr) {
+            if (isDouble) {
+              if (convResultDouble == null) {
+                convResultDouble = jimple.newLocal(freshLocalName("lclConvToDouble"), DoubleType.v());
+                b.getLocals().add(convResultDouble);
+              }
+              Value prev = def.getLeftOp();
+              def.setLeftOp(convResultDouble);
+              units.insertAfter(jimple.newAssignStmt(prev, jimple.newCastExpr(convResultDouble, DoubleType.v())), u);
+            }
+            if (isFloat) {
+              if (convResultFloat == null) {
+                convResultFloat = jimple.newLocal(freshLocalName("lclConvToFloat"), FloatType.v());
+                b.getLocals().add(convResultFloat);
+              }
+              Value prev = def.getLeftOp();
+              def.setLeftOp(convResultFloat);
+              units.insertAfter(jimple.newAssignStmt(prev, jimple.newCastExpr(convResultFloat, FloatType.v())), u);
+            }
+          }
+          BinopExpr bop = (BinopExpr) rop;
+          int idxConvVar = 0;
+          for (ValueBox cmp : bop.getUseBoxes()) {
+            Value c = cmp.getValue();
+            if (c instanceof Constant) {
+              if (isDouble) {
+                if (c instanceof LongConstant) {
+                  long vVal = ((LongConstant) c).value;
+                  cmp.setValue(DoubleConstant.v(Double.longBitsToDouble(vVal)));
+                }
+              } else if (isFloat && c instanceof IntConstant) {
+                int vVal = ((IntConstant) c).value;
+                cmp.setValue(FloatConstant.v(Float.intBitsToFloat(vVal)));
+              }
+            } else {
+              if (isDouble) {
+                if (!(c.getType() instanceof DoubleType)) {
+                  if (convDouble[idxConvVar] == null) {
+                    convDouble[idxConvVar] = jimple.newLocal(freshLocalName("lclConvToDouble" + idxConvVar), DoubleType.v());
+                    b.getLocals().add(convDouble[idxConvVar]);
+                  }
+                  units.insertBefore(
+                      jimple.newAssignStmt(convDouble[idxConvVar], jimple.newCastExpr(cmp.getValue(), DoubleType.v())), u);
+                  cmp.setValue(convDouble[idxConvVar]);
+                  idxConvVar++;
+                }
+              } else if (isFloat) {
+                if (!(c.getType() instanceof FloatType)) {
+                  if (convFloat[idxConvVar] == null) {
+                    convFloat[idxConvVar] = jimple.newLocal(freshLocalName("lclConvToFloat" + idxConvVar), FloatType.v());
+                    b.getLocals().add(convFloat[idxConvVar]);
+                  }
+                  units.insertBefore(
+                      jimple.newAssignStmt(convFloat[idxConvVar], jimple.newCastExpr(cmp.getValue(), FloatType.v())), u);
+                  cmp.setValue(convFloat[idxConvVar]);
+                  idxConvVar++;
+                }
+              }
+            }
+          }
+        }
+
+      }
+      u = units.getSuccOf(u);
+    }
+  }
+
+  /**
+   * Removes all dexpler specific tags. Saves some memory.
+   * @param unit the statement
+   */
+  private void removeDexplerTags(Unit unit) {
+    for (Tag t : unit.getTags()) {
+      if (t instanceof DexplerTag) {
+        unit.removeTag(t.getName());
+      }
+
+    }
+  }
+
+  /**
+   * Checks whether the Jimple code contains unrealizable casts between reference types and primitives
+   */
+  private void checkUnrealizableCasts() {
+    for (Unit u : jBody.getUnits()) {
+      if (u instanceof AssignStmt) {
+        AssignStmt assignStmt = (AssignStmt) u;
+        Value rop = assignStmt.getRightOp();
+        if (rop instanceof CastExpr) {
+          CastExpr cast = (CastExpr) rop;
+          if ((cast.getCastType() instanceof PrimType && cast.getOp().getType() instanceof RefType)
+              || (cast.getCastType() instanceof RefType && cast.getOp().getType() instanceof PrimType)) {
+
+            throw new RuntimeException("Unrealizable cast " + u + " detected in method " + jBody.getMethod().getSignature());
+          }
+        }
+      }
+    }
   }
 
   /**

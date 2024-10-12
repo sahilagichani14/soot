@@ -70,13 +70,13 @@
         <checkstyle.version>8.18</checkstyle.version>
         <checkstyle.dir.path>${basedir}/codingstyle</checkstyle.dir.path>
         <checkstyle.file.path>${checkstyle.dir.path}/soot_checkstyle_checks.xml</checkstyle.file.path>
-        <checkstyle.failOnViolation>false</checkstyle.failOnViolation>
-        <licence-check.failOnMissingHeader>false</licence-check.failOnMissingHeader>
+        <checkstyle.failOnViolation>true</checkstyle.failOnViolation>
+        <licence-check.failOnMissingHeader>true</licence-check.failOnMissingHeader>
         <testcase.groups.excluded>categories.Java9Test,categories.Java11Test</testcase.groups.excluded>
         <asm.version>9.7</asm.version>
     </properties>
     <build>
-        <finalName>sootclasses-trunk-disableBTList</finalName>
+        <finalName>sootclasses-trunk</finalName>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
