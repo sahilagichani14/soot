@@ -45,6 +45,10 @@ public class JimpleBodyPack extends BodyPack {
   private void applyPhaseOptions(JimpleBody b, Map<String, String> opts) {
     JBOptions options = new JBOptions(opts);
 
+    if (options.use_original_names()) {
+      PhaseOptions.v().setPhaseOptionIfUnset("jb.lns", "only-stack-locals");
+    }
+
     final PackManager pacman = PackManager.v();
     final boolean time = Options.v().time();
 

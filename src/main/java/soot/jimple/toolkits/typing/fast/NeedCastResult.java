@@ -1,12 +1,12 @@
-package soot.dexpler.tags;
-
-import soot.Type;
+package soot.jimple.toolkits.typing.fast;
 
 /*-
  * #%L
  * Soot - a J*va Optimization Framework
  * %%
- * Copyright (C) 1997 - 2018 Raja Vallée-Rai and others
+ * Copyright (C) 2008 Ben Bellamy 
+ * 
+ * All rights reserved.
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -24,8 +24,24 @@ import soot.Type;
  * #L%
  */
 
-public interface DexplerTag {
-  public default Type getDefiniteType() {
-    return null;
-  }
+/**
+ * Whether a cast is needed or not
+ */
+public enum NeedCastResult {
+  /**
+   * The cast is needed
+   */
+  NEEDS_CAST,
+
+  /**
+   * No cast is needed
+   */
+  DOESNT_NEED_CAST,
+
+  /**
+   * Actually, no cast is needed, but it is discouraged.
+   * For example, in Dex, int and float are essentially the same.
+   * In some contexts however, we prefer one of the types.  
+   */
+  DISCOURAGED_TARGET_TYPE
 }

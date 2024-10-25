@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import soot.Local;
+import soot.NullType;
 import soot.Type;
 
 /**
