@@ -112,25 +112,25 @@ public class EntryPoints {
       return ret;
     }
 
-    addMethod(ret, JavaMethods.INITIALIZE_SYSTEM_CLASS);
-    addMethod(ret, JavaMethods.THREAD_GROUP_INIT);
+    // addMethod(ret, JavaMethods.INITIALIZE_SYSTEM_CLASS);
+    // addMethod(ret, JavaMethods.THREAD_GROUP_INIT);
     // addMethod( ret, "<java.lang.ThreadGroup: void
     // remove(java.lang.Thread)>");
-    addMethod(ret, JavaMethods.THREAD_EXIT);
-    addMethod(ret, JavaMethods.THREADGROUP_UNCAUGHT_EXCEPTION);
+    // addMethod(ret, JavaMethods.THREAD_EXIT);
+    // addMethod(ret, JavaMethods.THREADGROUP_UNCAUGHT_EXCEPTION);
     // addMethod( ret, "<java.lang.System: void
     // loadLibrary(java.lang.String)>");
-    addMethod(ret, JavaMethods.CLASSLOADER_INIT);
-    addMethod(ret, JavaMethods.CLASSLOADER_LOAD_CLASS_INTERNAL);
-    addMethod(ret, JavaMethods.CLASSLOADER_CHECK_PACKAGE_ACC);
-    addMethod(ret, JavaMethods.CLASSLOADER_ADD_CLASS);
-    addMethod(ret, JavaMethods.CLASSLOADER_FIND_NATIVE);
-    addMethod(ret, JavaMethods.PRIV_ACTION_EXC_INIT);
+    // addMethod(ret, JavaMethods.CLASSLOADER_INIT);
+    // addMethod(ret, JavaMethods.CLASSLOADER_LOAD_CLASS_INTERNAL);
+    // addMethod(ret, JavaMethods.CLASSLOADER_CHECK_PACKAGE_ACC);
+    // addMethod(ret, JavaMethods.CLASSLOADER_ADD_CLASS);
+    // addMethod(ret, JavaMethods.CLASSLOADER_FIND_NATIVE);
+    // addMethod(ret, JavaMethods.PRIV_ACTION_EXC_INIT);
     // addMethod( ret, "<java.lang.ref.Finalizer: void
     // register(java.lang.Object)>");
-    addMethod(ret, JavaMethods.RUN_FINALIZE);
-    addMethod(ret, JavaMethods.THREAD_INIT_RUNNABLE);
-    addMethod(ret, JavaMethods.THREAD_INIT_STRING);
+    // addMethod(ret, JavaMethods.RUN_FINALIZE);
+    // addMethod(ret, JavaMethods.THREAD_INIT_RUNNABLE);
+    // addMethod(ret, JavaMethods.THREAD_INIT_STRING);
     return ret;
   }
 
